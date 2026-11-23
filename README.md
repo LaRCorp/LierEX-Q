@@ -1,15 +1,15 @@
 <div align="center">
   <img src="icons/icon128.png" width="96" height="96" alt="LierEX-Q Logo" />
-  <h1>LierEX-Q v1.3</h1>
+  <h1>🌐 LierEX-Q v1.3 — Экстрактор Медиа и Музыки</h1>
   <p><strong>Браузерное расширение для извлечения карточек фильмов, сериалов, видеоигр и музыки в JSON, LierTags или Lierkour</strong></p>
 
   <p>
-    <a href="https://github.com/LaRCorp/LierEX/releases"><img src="https://img.shields.io/badge/version-1.3.0-6366f1?style=flat-square" alt="Version 1.3.0" /></a>
+    <a href="https://github.com/LaRCorp/LierEX-Q/releases"><img src="https://img.shields.io/badge/version-1.3.0-6366f1?style=flat-square" alt="Version 1.3.0" /></a>
     <img src="https://img.shields.io/badge/Manifest-V3-0ea5e9?style=flat-square" alt="Manifest V3" />
     <img src="https://img.shields.io/badge/Vanilla_JS-Zero_Build-f59e0b?style=flat-square" alt="Vanilla JS" />
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-10b981?style=flat-square" alt="GPLv3 License" /></a>
     <a href="https://github.com/LaRCorp/LierTags"><img src="https://img.shields.io/badge/Companion-LierTags_v0.1%2B-ec4899?style=flat-square" alt="LierTags v0.1+" /></a>
-    <a href="https://github.com/LaRCorp/Lierkour"><img src="https://img.shields.io/badge/Companion-Lierkour_v2.1%2B-8b5cf6?style=flat-square" alt="Lierkour v2.1+" /></a>
+    <a href="https://github.com/LaRCorp/Lierkour"><img src="https://img.shields.io/badge/Companion-Lierkour_v2.2%2B-8b5cf6?style=flat-square" alt="Lierkour v2.2+" /></a>
   </p>
 </div>
 
@@ -68,7 +68,7 @@
 
 ## Установка с GitHub (Opera / Opera GX / Edge / Chrome / Яндекс / Brave)
 
-1. Скачайте архив из **[Releases LierEX](https://github.com/LaRCorp/LierEX/releases)** (или `Code → Download ZIP`) и распакуйте его в постоянную папку (внутри должен лежать `manifest.json`).
+1. Скачайте архив из **[Releases LierEX-Q](https://github.com/LaRCorp/LierEX-Q/releases)** (или `Code → Download ZIP`) и распакуйте его в постоянную папку (внутри должен лежать `manifest.json`).
 2. Откройте страницу расширений в браузере:
    - Opera / Opera GX: `opera://extensions/`
    - Microsoft Edge: `edge://extensions/`
@@ -76,7 +76,7 @@
    - Яндекс.Браузер: `browser://extensions/`
 3. Включите **Режим разработчика** (Developer mode).
 4. Нажмите **Загрузить распакованное расширение** (Load unpacked) и выберите папку с `manifest.json`.
-5. Закрепите иконку **LierEX** на панели браузера.
+5. Закрепите иконку **LierEX-Q** на панели браузера.
 
 ---
 
@@ -88,7 +88,7 @@
 3. Нажмите **Добавить в LierTags** (токен не требуется, соединение происходит напрямую).
 
 ### 🎬 Lierkour (Каталогизатор фильмов и игр — порт 8765)
-1. Установите и запустите **[Lierkour (v2.1+)](https://github.com/LaRCorp/Lierkour/releases)**.
+1. Установите и запустите **[Lierkour (v2.2+)](https://github.com/LaRCorp/Lierkour/releases)**.
 2. Откройте в Lierkour вкладку **Настройки** → блок **«Связь с браузерным расширением LierEX»** и скопируйте `X-LierEX-Token`.
 3. Нажмите иконку **LierEX-Q** в браузере → **⚙** → вставьте токен → **OK** (хранится локально в `chrome.storage.local`).
 4. Откройте карточку фильма, сериала или игры, выберите статус и нажмите **Добавить в Lierkour**.
@@ -110,4 +110,12 @@
 
 Распространяется под лицензией **GNU General Public License v3.0 (GPLv3)** — см. [LICENSE](LICENSE).
 
-Связанный репозиторий: **[LaRCorp/Lierkour](https://github.com/LaRCorp/Lierkour)**
+Copyright (c) 2026 LaRevole.
+
+Сделано с любовью к кино, видеоиграм, музыке и открытому вебу.
+
+---
+
+### Связанные проекты экосистемы
+- 🎮🎬 **[LaRCorp/Lierkour](https://github.com/LaRCorp/Lierkour)** — локальный кроссплатформенный каталогизатор фильмов, сериалов, аниме и видеоигр.
+- 🎵🏷️ **[LaRCorp/LierTags](https://github.com/LaRCorp/LierTags)** — локальный высокопроизводительный редактор аудиотегов и обложек на Rust.
