@@ -1512,6 +1512,505 @@
     };
   }
 
+  function parseMusicBrainz() {
+    const jsonLd = findPrimaryJsonLd([
+      'MusicRecording',
+      'MusicRelease',
+      'MusicAlbum',
+      'MusicComposition',
+      'CreativeWork',
+    ]);
+
+    let rawTitle = queryText([
+      'h1 bdi',
+      'h1.recording-title',
+      'h1.release-title',
+      '.mar-release-header h1',
+      '.subheader h1',
+      'h1',
+    ]);
+
+    rawTitle = rawTitle
+      .replace(/^(?:recording|release(?:\s+group)?|work)\s*[:“"«]/i, '')
+      .replace(/[”"»]\s*$/i, '')
+      .trim();
+
+    const title = cleanText(jsonLd?.name) || rawTitle;
+
+    const artistCandidates = [];
+    if (jsonLd?.byArtist) {
+      artistCandidates.push(...extractJsonLdNames(jsonLd.byArtist));
+    }
+    if (jsonLd?.creator) {
+      artistCandidates.push(...extractJsonLdNames(jsonLd.creator));
+    }
+    if (jsonLd?.author) {
+      artistCandidates.push(...extractJsonLdNames(jsonLd.author));
+    }
+
+    const domArtists = Array.from(
+      document.querySelectorAll(
+        'p.subheader-text a[href*="/artist/"], .subheader a[href*="/artist/"], .mar-release-header a[href*="/artist/"], span.header-artist a, a[href*="/artist/"]'
+      )
+    )
+      .slice(0, 5)
+      .map((el) => cleanText(el.textContent))
+      .filter((t) => t && !/^(?:edit|add|more|details|history)$/i.test(t));
+    artistCandidates.push(...domArtists);
+
+    const artist = dedupeStrings(artistCandidates)[0] || '';
+
+    let album = '';
+    const isReleasePage = /\/(?:release|release-group)\//i.test(window.location.pathname);
+    const releaseLink = document.querySelector(
+      'p.subheader-text a[href*="/release/"], table.tbl a[href*="/release/"], a[href*="/release/"]'
+    );
+    if (isReleasePage) {
+      album = title;
+    } else if (releaseLink) {
+      album = cleanText(releaseLink.textContent);
+    }
+
+    const yearText = queryText([
+      '.release-date',
+      'span.date',
+      '.mar-date',
+      'dl.properties dd',
+    ]);
+    const year =
+      extractDateYear(jsonLd?.datePublished) ||
+      extractDateYear(yearText) ||
+      extractYear(document.body.innerText.slice(0, 2500));
+
+    const tagElements = Array.from(
+      document.querySelectorAll(
+        '#sidebar-tags li a, div.tag-list a, .tags-list a, a[href*="/tag/"]'
+      )
+    )
+      .map((el) => cleanText(el.textContent))
+      .filter((t) => t && !/^(?:add|edit|more|\+)$/i.test(t));
+    const genres = joinUnique([
+      ...tagElements.slice(0, 5),
+      ...extractJsonLdNames(jsonLd?.genre),
+    ]);
+
+    const posterCandidates = [];
+    for (const img of document.querySelectorAll(
+      '#cover-art-container img, .cover-art img, div.artwork-cont img, .mar-cover-art img'
+    )) {
+      addPosterCandidate(posterCandidates, pickImageUrl(img));
+    }
+    const jsonImage = typeof jsonLd?.image === 'string' ? jsonLd.image : jsonLd?.image?.url;
+    addPosterCandidate(posterCandidates, jsonImage);
+    addPosterCandidate(posterCandidates, getMetaContent(['meta[property="og:image"]']));
+
+    const artworkUrl = posterCandidates[0] || null;
+
+    return {
+      type: 'track',
+      title,
+      artist,
+      album,
+      year: year ?? null,
+      genre: genres,
+      artwork_url: artworkUrl,
+      source_url: window.location.href,
+      category: 'Треки',
+      original_title: artist,
+      director: artist ? `Исполнитель: ${artist}` : '',
+      description: album ? `Альбом: ${album}` : '',
+      poster_url: artworkUrl,
+      poster_candidates: posterCandidates,
+    };
+  }
+
+  function parseDiscogs() {
+    const jsonLd = findPrimaryJsonLd([
+      'MusicRelease',
+      'MusicAlbum',
+      'MusicRecording',
+      'CreativeWork',
+    ]);
+
+    const ogTitle = getMetaContent(['meta[property="og:title"]']);
+    const rawH1 = queryText(['h1[class*="title"]', 'h1.title_', 'h1']);
+
+    let title = cleanText(jsonLd?.name);
+    let artist = '';
+
+    if (jsonLd?.byArtist) {
+      const names = extractJsonLdNames(jsonLd.byArtist);
+      if (names.length > 0) artist = names.join(', ');
+    }
+
+    if (!artist) {
+      const artistEl = document.querySelector(
+        'h1 a[href*="/artist/"], div[class*="artist"] a[href*="/artist/"], span[class*="artist"] a'
+      );
+      if (artistEl) {
+        artist = cleanText(artistEl.textContent);
+      }
+    }
+
+    if (!title) {
+      if (rawH1) {
+        const dashMatch = rawH1.match(/^(.+?)\s+[–—-]\s+(.+)$/);
+        if (dashMatch) {
+          if (!artist) artist = cleanText(dashMatch[1]);
+          title = cleanText(dashMatch[2]);
+        } else {
+          title = rawH1;
+        }
+      } else if (ogTitle) {
+        const dashMatch = ogTitle.match(/^(.+?)\s+[–—-]\s+(.+)$/);
+        if (dashMatch) {
+          if (!artist) artist = cleanText(dashMatch[1]);
+          title = cleanText(dashMatch[2]);
+        } else {
+          title = ogTitle;
+        }
+      }
+    }
+
+    artist = artist.replace(/\s*\(\d+\)$/, '').trim();
+    title = title.replace(/\s*\(\d+\)$/, '').trim();
+
+    const isReleaseOrMaster = /\/(?:release|master)\//i.test(window.location.pathname);
+    const album = isReleaseOrMaster ? title : '';
+
+    const yearText = queryText([
+      'time[datetime]',
+      'a[href*="/year/"]',
+      'a[href*="/release/year/"]',
+      'div[class*="profile"] time',
+    ]);
+    const year =
+      extractDateYear(jsonLd?.datePublished) ||
+      extractDateYear(yearText) ||
+      extractYear(document.body.innerText.slice(0, 3000));
+
+    const genreLinks = Array.from(
+      document.querySelectorAll(
+        'a[href*="/genre/"], a[href*="/style/"], div[class*="profile"] a'
+      )
+    )
+      .filter((a) => /\/(?:genre|style)\//i.test(a.href))
+      .map((a) => cleanText(a.textContent));
+
+    const genres = joinUnique([
+      ...genreLinks,
+      ...extractJsonLdNames(jsonLd?.genre),
+    ]);
+
+    const posterCandidates = [];
+    for (const img of document.querySelectorAll(
+      'div.image_gallery img, picture img, div[class*="image_"] img'
+    )) {
+      addPosterCandidate(posterCandidates, pickImageUrl(img));
+    }
+    const jsonImage = typeof jsonLd?.image === 'string' ? jsonLd.image : jsonLd?.image?.url;
+    addPosterCandidate(posterCandidates, jsonImage);
+    addPosterCandidate(posterCandidates, getMetaContent(['meta[property="og:image"]']));
+
+    const artworkUrl = posterCandidates[0] || null;
+
+    return {
+      type: 'track',
+      title,
+      artist,
+      album,
+      year: year ?? null,
+      genre: genres,
+      artwork_url: artworkUrl,
+      source_url: window.location.href,
+      category: 'Треки',
+      original_title: artist,
+      director: artist ? `Исполнитель: ${artist}` : '',
+      description: album ? `Альбом: ${album}` : '',
+      poster_url: artworkUrl,
+      poster_candidates: posterCandidates,
+    };
+  }
+
+  function parseLastFm() {
+    const rawH1 = queryText(['h1.header-new-title', 'main h1', 'h1']);
+    const ogTitle = getMetaContent(['meta[property="og:title"]']);
+    const title = rawH1 || ogTitle;
+
+    let artist = queryText([
+      'a.header-new-artist',
+      'span.header-new-title a',
+      '.header-new-crumb a',
+      'a[href^="/music/"][class*="artist"]',
+    ]);
+    if (!artist) {
+      artist = getMetaContent(['meta[property="music:musician"]']);
+    }
+
+    let album = '';
+    const albumEl = document.querySelector(
+      '.header-new-crumb a[href*="/music/"], section[data-analytics-module="track_album"] a, .source-album-name a'
+    );
+    if (albumEl) {
+      const albumText = cleanText(albumEl.textContent);
+      if (albumText && albumText.toLowerCase() !== artist.toLowerCase()) {
+        album = albumText;
+      }
+    }
+    const isAlbumPage =
+      /\/music\/[^/]+\/[^/_]+(?:\/?$)/i.test(window.location.pathname) &&
+      !/\/_\//.test(window.location.pathname);
+    if (isAlbumPage && !album) {
+      album = title;
+    }
+
+    const yearText = queryText([
+      'dd.catalogue-metadata-description',
+      'dl.catalogue-metadata',
+      'span.header-metadata-tether',
+    ]);
+    const year = extractDateYear(yearText) || extractYear(yearText);
+
+    const tagElements = Array.from(
+      document.querySelectorAll('ul.tags-list li a, a.tag, section.catalogue-tags a')
+    ).map((a) => cleanText(a.textContent));
+    const genres = joinUnique(tagElements.slice(0, 5));
+
+    const posterCandidates = [];
+    const headerBg = document.querySelector('div.header-new-background-image');
+    if (headerBg) {
+      const bgStyle = headerBg.getAttribute('style') || '';
+      const bgMatch = bgStyle.match(/url\(['"]?([^'"]+)['"]?\)/i);
+      if (bgMatch) {
+        addPosterCandidate(posterCandidates, bgMatch[1]);
+      }
+    }
+    for (const img of document.querySelectorAll(
+      '.cover-art img, .header-featured-image img, div[class*="header"] img'
+    )) {
+      addPosterCandidate(posterCandidates, pickImageUrl(img));
+    }
+    addPosterCandidate(posterCandidates, getMetaContent(['meta[property="og:image"]']));
+
+    const artworkUrl = posterCandidates[0] || null;
+
+    return {
+      type: 'track',
+      title,
+      artist,
+      album,
+      year: year ?? null,
+      genre: genres,
+      artwork_url: artworkUrl,
+      source_url: window.location.href,
+      category: 'Треки',
+      original_title: artist,
+      director: artist ? `Исполнитель: ${artist}` : '',
+      description: album ? `Альбом: ${album}` : '',
+      poster_url: artworkUrl,
+      poster_candidates: posterCandidates,
+    };
+  }
+
+  function parseBandcamp() {
+    const jsonLd = findPrimaryJsonLd([
+      'MusicRecording',
+      'MusicAlbum',
+      'CreativeWork',
+    ]);
+
+    const title =
+      cleanText(jsonLd?.name) ||
+      queryText([
+        'h2.trackTitle',
+        'h1.trackTitle',
+        '#name-section .trackTitle',
+        'meta[property="og:title"]',
+      ]);
+
+    let artist = '';
+    if (jsonLd?.byArtist) {
+      const names = extractJsonLdNames(jsonLd.byArtist);
+      if (names.length > 0) artist = names.join(', ');
+    }
+    if (!artist) {
+      artist = queryText([
+        '#name-section h3 span a',
+        'span[itemprop="byArtist"] a',
+        'h3.albumTitle span a',
+        '#name-section h3 a',
+      ]);
+    }
+
+    let album = '';
+    if (jsonLd?.inAlbum) {
+      album = cleanText(jsonLd.inAlbum.name || jsonLd.inAlbum);
+    }
+    if (!album) {
+      const albumEl = document.querySelector('span.fromAlbum a');
+      if (albumEl) {
+        album = cleanText(albumEl.textContent);
+      } else if (/\/album\//i.test(window.location.pathname)) {
+        album = title;
+      }
+    }
+
+    const creditsText = queryText(['.tralbumData.tralbum-credits', '.tralbum-credits']);
+    const year =
+      extractDateYear(jsonLd?.datePublished) ||
+      extractDateYear(getMetaContent(['meta[itemprop="datePublished"]'])) ||
+      extractDateYear(creditsText) ||
+      extractYear(creditsText);
+
+    const tagElements = Array.from(
+      document.querySelectorAll('.tralbum-tags a.tag, .tag, a[href*="/tag/"]')
+    ).map((a) => cleanText(a.textContent));
+    const keywords = getMetaContent(['meta[name="keywords"]'])
+      .split(',')
+      .map((s) => cleanText(s));
+    const genres = joinUnique([...tagElements, ...keywords].slice(0, 5));
+
+    const posterCandidates = [];
+    for (const img of document.querySelectorAll(
+      '#tralbumArt a.popupImage img, #tralbumArt img'
+    )) {
+      addPosterCandidate(posterCandidates, pickImageUrl(img));
+    }
+    const jsonImage = typeof jsonLd?.image === 'string' ? jsonLd.image : jsonLd?.image?.url;
+    addPosterCandidate(posterCandidates, jsonImage);
+    addPosterCandidate(posterCandidates, getMetaContent(['meta[property="og:image"]']));
+
+    const artworkUrl = posterCandidates[0] || null;
+
+    return {
+      type: 'track',
+      title,
+      artist,
+      album,
+      year: year ?? null,
+      genre: genres,
+      artwork_url: artworkUrl,
+      source_url: window.location.href,
+      category: 'Треки',
+      original_title: artist,
+      director: artist ? `Исполнитель: ${artist}` : '',
+      description: album ? `Альбом: ${album}` : '',
+      poster_url: artworkUrl,
+      poster_candidates: posterCandidates,
+    };
+  }
+
+  function parseYandexMusic() {
+    let title = queryText([
+      'h1.page-title',
+      'h1.sidebar__title',
+      'span.track__title',
+      'h1.album-header__title',
+    ]);
+    if (!title) {
+      title = getMetaContent(['meta[property="og:title"]']);
+    }
+
+    const artist =
+      queryText([
+        'a.sidebar__artists',
+        '.sidebar__artists a',
+        '.album-header__artists a',
+        '.track__artists a',
+        'a[href*="/artist/"]',
+      ]) || getMetaContent(['meta[property="music:musician"]']);
+
+    let album = queryText([
+      '.track__album a',
+      '.sidebar__desc a[href*="/album/"]',
+      'a[href*="/album/"]',
+    ]);
+    if (!album && /\/album\/\d+(?:\/?$)/i.test(window.location.pathname)) {
+      album = title;
+    }
+
+    const yearText = queryText(['.album-header__year', '.sidebar__info']);
+    const year = extractDateYear(yearText) || extractYear(yearText);
+
+    const genreElements = Array.from(
+      document.querySelectorAll('.album-header__genres a, a[href*="/genre/"]')
+    ).map((a) => cleanText(a.textContent));
+    const genres = joinUnique(genreElements);
+
+    const posterCandidates = [];
+    for (const img of document.querySelectorAll(
+      '.entity-cover img, img.track__cover, .album-header__cover img'
+    )) {
+      let src = pickImageUrl(img);
+      if (src && src.includes('%%')) {
+        src = src.replace('%%', '400x400');
+      }
+      addPosterCandidate(posterCandidates, src);
+    }
+    let ogImage = getMetaContent(['meta[property="og:image"]']);
+    if (ogImage && ogImage.includes('%%')) {
+      ogImage = ogImage.replace('%%', '400x400');
+    }
+    addPosterCandidate(posterCandidates, ogImage);
+
+    const artworkUrl = posterCandidates[0] || null;
+
+    return {
+      type: 'track',
+      title,
+      artist,
+      album,
+      year: year ?? null,
+      genre: genres,
+      artwork_url: artworkUrl,
+      source_url: window.location.href,
+      category: 'Треки',
+      original_title: artist,
+      director: artist ? `Исполнитель: ${artist}` : '',
+      description: album ? `Альбом: ${album}` : '',
+      poster_url: artworkUrl,
+      poster_candidates: posterCandidates,
+    };
+  }
+
+  function detectContentType(url) {
+    try {
+      const parsed = new URL(url);
+      const host = parsed.hostname.toLowerCase();
+      if (
+        host === 'musicbrainz.org' ||
+        host.endsWith('.musicbrainz.org') ||
+        host === 'discogs.com' ||
+        host.endsWith('.discogs.com') ||
+        host === 'last.fm' ||
+        host.endsWith('.last.fm') ||
+        host === 'bandcamp.com' ||
+        host.endsWith('.bandcamp.com') ||
+        host === 'music.yandex.ru' ||
+        host.endsWith('.music.yandex.ru') ||
+        host === 'music.yandex.com' ||
+        host.endsWith('.music.yandex.com')
+      ) {
+        return 'track';
+      }
+      if (
+        host === 'store.steampowered.com' ||
+        host.endsWith('.store.steampowered.com') ||
+        host === 'epicgames.com' ||
+        host.endsWith('.epicgames.com') ||
+        host === 'gog.com' ||
+        host.endsWith('.gog.com') ||
+        host === 'itch.io' ||
+        host.endsWith('.itch.io')
+      ) {
+        return 'game';
+      }
+      return 'movie';
+    } catch {
+      return 'movie';
+    }
+  }
+
   function getMsg(ruText, enText) {
     const lang = (
       (typeof chrome !== 'undefined' && chrome?.i18n?.getUILanguage
@@ -1546,12 +2045,27 @@
       data = parseGog();
     } else if (host === 'itch.io' || host.endsWith('.itch.io')) {
       data = parseItch();
+    } else if (host === 'musicbrainz.org' || host.endsWith('.musicbrainz.org')) {
+      data = parseMusicBrainz();
+    } else if (host === 'discogs.com' || host.endsWith('.discogs.com')) {
+      data = parseDiscogs();
+    } else if (host === 'last.fm' || host.endsWith('.last.fm')) {
+      data = parseLastFm();
+    } else if (host === 'bandcamp.com' || host.endsWith('.bandcamp.com')) {
+      data = parseBandcamp();
+    } else if (
+      host === 'music.yandex.ru' ||
+      host.endsWith('.music.yandex.ru') ||
+      host === 'music.yandex.com' ||
+      host.endsWith('.music.yandex.com')
+    ) {
+      data = parseYandexMusic();
     } else {
       return {
         ok: false,
         error: getMsg(
-          'Откройте карточку на Кинопоиске, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG или Itch.io.',
-          'Open a movie, series, or game page on Kinopoisk, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG, or Itch.io.'
+          'Откройте карточку на Кинопоиске, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG, Itch.io, MusicBrainz, Discogs, Last.fm, Bandcamp или Яндекс.Музыке.',
+          'Open a movie, series, game, or track page on Kinopoisk, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG, Itch.io, MusicBrainz, Discogs, Last.fm, Bandcamp, or Yandex Music.'
         ),
       };
     }
@@ -1560,8 +2074,8 @@
       return {
         ok: false,
         error: getMsg(
-          'Не удалось извлечь данные со страницы. Убедитесь, что открыта карточка фильма, сериала или игры.',
-          'Could not extract media metadata. Make sure a movie, series, or game page is open.'
+          'Не удалось извлечь данные со страницы. Убедитесь, что открыта карточка фильма, сериала, игры или музыкального трека/альбома.',
+          'Could not extract media metadata. Make sure a movie, series, game, or music page is open.'
         ),
       };
     }
@@ -1571,6 +2085,7 @@
 
   // Expose cleanly without throwing on repeated script injections.
   window.__lierexExtractMedia = extractMediaData;
+  window.__lierexDetectContentType = detectContentType;
 
   return extractMediaData();
 })();

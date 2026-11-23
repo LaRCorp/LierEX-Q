@@ -1,11 +1,11 @@
 {
   "extName": {
-    "message": "LierEX"
+    "message": "LierEX-Q"
   },
   "extDescription": {
-    "message": "Extract movie, series & game metadata from IMDb, TMDb, Kinopoisk, Steam, Epic, GOG & more to JSON or Lierkour."
+    "message": "Extract movie, game & music metadata (IMDb, Steam, MusicBrainz, Discogs, Bandcamp) to JSON, LierTags, or Lierkour."
   },
   "actionTitle": {
-    "message": "LierEX — Export or Add to Lierkour"
+    "message": "LierEX-Q — Export or Add to LierTags / Lierkour"
   }
 }

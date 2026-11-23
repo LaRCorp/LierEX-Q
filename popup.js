@@ -8,6 +8,12 @@ const SUPPORTED_HOSTS = [
   'epicgames.com',
   'gog.com',
   'itch.io',
+  'musicbrainz.org',
+  'discogs.com',
+  'last.fm',
+  'bandcamp.com',
+  'music.yandex.ru',
+  'music.yandex.com',
 ];
 
 const IS_RU = (
@@ -46,6 +52,7 @@ const mediaTitle = document.getElementById('media-title');
 const mediaOriginal = document.getElementById('media-original');
 const mediaDetails = document.getElementById('media-details');
 const mediaDesc = document.getElementById('media-desc');
+const statusPicker = document.querySelector('.status-picker');
 const statusLabel = document.querySelector('label[for="status-select"]');
 const statusSelect = document.getElementById('status-select');
 const importBtn = document.getElementById('import-btn');
@@ -62,6 +69,8 @@ const CATEGORY_EN = {
   Аниме: 'Anime',
   Документальные: 'Documentary',
   Игры: 'Game',
+  Треки: 'Track',
+  Музыка: 'Music',
 };
 
 const STATUS_OPTIONS = {
@@ -76,6 +85,12 @@ const STATUS_OPTIONS = {
     { value: 'watching', ru: 'Играю', en: 'Playing' },
     { value: 'watched', ru: 'Пройдена', en: 'Completed' },
     { value: 'dropped', ru: 'Брошена', en: 'Dropped' },
+  ],
+  track: [
+    { value: 'want_to_listen', ru: 'В планах', en: 'To Listen' },
+    { value: 'listening', ru: 'Слушаю', en: 'Listening' },
+    { value: 'favorite', ru: 'Любимый трек', en: 'Favorite' },
+    { value: 'listened', ru: 'Прослушано', en: 'Listened' },
   ],
 };
 
@@ -114,14 +129,26 @@ function applyStaticLocale() {
 
 function buildPayloadWithStatus() {
   if (!extractedPayload) return null;
+  const isTrack = extractedPayload.type === 'track';
+  if (isTrack) {
+    const payload = { ...extractedPayload };
+    delete payload.status;
+    return payload;
+  }
+  const defaultStatus = 'want_to_watch';
   return {
     ...extractedPayload,
-    status: statusSelect.value || 'want_to_watch',
+    status: statusSelect.value || defaultStatus,
   };
 }
 
 function populateStatusOptions(mediaType) {
-  const options = mediaType === 'game' ? STATUS_OPTIONS.game : STATUS_OPTIONS.movie;
+  const options =
+    mediaType === 'track'
+      ? STATUS_OPTIONS.track
+      : mediaType === 'game'
+      ? STATUS_OPTIONS.game
+      : STATUS_OPTIONS.movie;
   statusSelect.replaceChildren();
   for (const opt of options) {
     const el = document.createElement('option');
@@ -129,12 +156,15 @@ function populateStatusOptions(mediaType) {
     el.textContent = IS_RU ? opt.ru : opt.en;
     statusSelect.appendChild(el);
   }
-  statusSelect.value = 'want_to_watch';
+  statusSelect.value = mediaType === 'track' ? 'want_to_listen' : 'want_to_watch';
 }
 
 function buildPosterQueue(data) {
   const queue = [];
   if (data.poster_url) queue.push(data.poster_url);
+  if (data.artwork_url && !queue.includes(data.artwork_url)) {
+    queue.push(data.artwork_url);
+  }
   if (Array.isArray(data.poster_candidates)) {
     for (const url of data.poster_candidates) {
       if (url && !queue.includes(url)) {
@@ -215,14 +245,24 @@ function showPreview(data) {
   loadingState.classList.add('hidden');
   errorState.classList.add('hidden');
 
+  const isTrack = data.type === 'track';
   const isGame = data.type === 'game';
-  const rawCategory = data.category || (isGame ? 'Игры' : 'Фильмы');
+  const defaultCategory = isTrack ? 'Треки' : isGame ? 'Игры' : 'Фильмы';
+  const rawCategory = data.category || defaultCategory;
+
   typeBadge.textContent = IS_RU
     ? rawCategory
-    : CATEGORY_EN[rawCategory] || (isGame ? 'Game' : 'Movie');
-  typeBadge.className = `badge ${isGame ? 'badge--game' : 'badge--movie'}`;
+    : CATEGORY_EN[rawCategory] || (isTrack ? 'Track' : isGame ? 'Game' : 'Movie');
+  typeBadge.className = `badge ${
+    isTrack ? 'badge--track' : isGame ? 'badge--game' : 'badge--movie'
+  }`;
 
-  populateStatusOptions(isGame ? 'game' : 'movie');
+  if (isTrack) {
+    if (statusPicker) statusPicker.classList.add('hidden');
+  } else {
+    if (statusPicker) statusPicker.classList.remove('hidden');
+    populateStatusOptions(isGame ? 'game' : 'movie');
+  }
 
   if (data.year) {
     yearBadge.textContent = String(data.year);
@@ -233,7 +273,10 @@ function showPreview(data) {
 
   mediaTitle.textContent = data.title;
 
-  if (data.original_title && data.original_title !== data.title) {
+  if (isTrack && data.artist) {
+    mediaOriginal.textContent = data.artist;
+    mediaOriginal.classList.remove('hidden');
+  } else if (data.original_title && data.original_title !== data.title) {
     mediaOriginal.textContent = data.original_title;
     mediaOriginal.classList.remove('hidden');
   } else {
@@ -241,12 +284,18 @@ function showPreview(data) {
   }
 
   const detailParts = [];
-  if (data.director) {
+  if (isTrack) {
+    if (data.album) {
+      detailParts.push(IS_RU ? `Альбом: ${data.album}` : `Album: ${data.album}`);
+    }
+  } else if (data.director) {
     detailParts.push(IS_RU ? `Реж.: ${data.director}` : `Dir.: ${data.director}`);
   } else if (isGame && data.country) {
     detailParts.push(data.country);
   }
-  if (data.genres) {
+  if (data.genre) {
+    detailParts.push(data.genre);
+  } else if (data.genres) {
     detailParts.push(data.genres);
   }
   if (data.runtime_minutes) {
@@ -266,7 +315,14 @@ function showPreview(data) {
     mediaDesc.classList.add('hidden');
   }
 
-  posterFallback.textContent = isGame ? '🎮' : '🎬';
+  posterFallback.textContent = isTrack ? '🎵' : isGame ? '🎮' : '🎬';
+
+  if (isTrack) {
+    importBtn.textContent = t('Добавить в LierTags', 'Add to LierTags');
+  } else {
+    importBtn.textContent = t('Добавить в Lierkour', 'Add to Lierkour');
+  }
+
   const posterQueue = buildPosterQueue(data);
   if (posterQueue.length > 0) {
     let candidateIndex = 0;
@@ -290,15 +346,49 @@ function showPreview(data) {
   }
 
   previewState.classList.remove('hidden');
+
+  refreshServerStatus(data.type).catch(() => {});
 }
 
-async function refreshServerStatus() {
-  const token = await getSavedToken();
+async function refreshServerStatus(mediaType) {
+  const isTrack = mediaType === 'track';
   serverDot.className = 'status-dot status-dot--checking';
-  serverDot.title = t('Проверка связи с Lierkour...', 'Checking Lierkour connection...');
+
+  if (isTrack) {
+    serverDot.title = t(
+      'Проверка связи с LierTags (8766)...',
+      'Checking LierTags connection (8766)...'
+    );
+    const status = await chrome.runtime.sendMessage({
+      type: 'CHECK_SERVER',
+      target: 'liertags',
+    });
+
+    if (status?.online) {
+      serverDot.className = 'status-dot status-dot--online';
+      serverDot.title = t(
+        'Связь с LierTags активна (порт 8766)',
+        'Connected to LierTags (port 8766)'
+      );
+    } else {
+      serverDot.className = 'status-dot status-dot--offline';
+      serverDot.title = t(
+        'LierTags не запущен (порт 8766) — доступны Copy / Save JSON',
+        'LierTags app offline (port 8766) — Copy / Save JSON ready'
+      );
+    }
+    return;
+  }
+
+  const token = await getSavedToken();
+  serverDot.title = t(
+    'Проверка связи с Lierkour (8765)...',
+    'Checking Lierkour connection (8765)...'
+  );
 
   const status = await chrome.runtime.sendMessage({
     type: 'CHECK_SERVER',
+    target: 'lierkour',
     token,
   });
 
@@ -310,15 +400,18 @@ async function refreshServerStatus() {
         'Lierkour is running — paste token'
       );
     } else if (status.authorized) {
-      serverDot.title = t('Связь с Lierkour активна', 'Connected to Lierkour');
+      serverDot.title = t(
+        'Связь с Lierkour активна (порт 8765)',
+        'Connected to Lierkour (port 8765)'
+      );
     } else {
       serverDot.title = t('Неверный токен LierEX', 'Invalid LierEX token');
     }
   } else {
     serverDot.className = 'status-dot status-dot--offline';
     serverDot.title = t(
-      'Lierkour не запущен — доступны Copy / Save JSON',
-      'Lierkour app offline — Copy / Save JSON ready'
+      'Lierkour не запущен (порт 8765) — доступны Copy / Save JSON',
+      'Lierkour app offline (port 8765) — Copy / Save JSON ready'
     );
   }
 }
@@ -338,7 +431,8 @@ saveTokenBtn.addEventListener('click', async () => {
   } else {
     showFeedback(t('Токен очищен', 'Token cleared'), 'warn');
   }
-  await refreshServerStatus();
+  const currentType = extractedPayload?.type || 'movie';
+  await refreshServerStatus(currentType);
 });
 
 tokenInput.addEventListener('keydown', (e) => {
@@ -350,20 +444,28 @@ tokenInput.addEventListener('keydown', (e) => {
 importBtn.addEventListener('click', async () => {
   if (!extractedPayload) return;
 
-  const token = await getSavedToken();
-  if (!token) {
-    tokenPanel.classList.remove('hidden');
-    tokenInput.focus();
-    showFeedback(
-      t('Вставьте токен из Настроек Lierkour', 'Paste token from Lierkour Settings'),
-      'warn'
-    );
-    return;
+  const isTrack = extractedPayload.type === 'track';
+  const targetApp = isTrack ? 'LierTags' : 'Lierkour';
+  let token = '';
+
+  if (!isTrack) {
+    token = await getSavedToken();
+    if (!token) {
+      tokenPanel.classList.remove('hidden');
+      tokenInput.focus();
+      showFeedback(
+        t('Вставьте токен из Настроек Lierkour', 'Paste token from Lierkour Settings'),
+        'warn'
+      );
+      return;
+    }
   }
 
   clearFeedback();
   importBtn.disabled = true;
-  const originalLabel = t('Добавить в Lierkour', 'Add to Lierkour');
+  const originalLabel = isTrack
+    ? t('Добавить в LierTags', 'Add to LierTags')
+    : t('Добавить в Lierkour', 'Add to Lierkour');
   importBtn.textContent = t('Отправка...', 'Sending...');
 
   const payloadWithStatus = buildPayloadWithStatus();
@@ -372,7 +474,7 @@ importBtn.addEventListener('click', async () => {
   const result = await chrome.runtime.sendMessage({
     type: 'IMPORT_MEDIA',
     payload: payloadWithStatus,
-    token,
+    token: isTrack ? '' : token,
   });
 
   importBtn.disabled = false;
@@ -384,7 +486,7 @@ importBtn.addEventListener('click', async () => {
     setTimeout(() => {
       importBtn.textContent = originalLabel;
     }, 2000);
-    await refreshServerStatus();
+    await refreshServerStatus(extractedPayload.type);
     return;
   }
 
@@ -398,10 +500,11 @@ importBtn.addEventListener('click', async () => {
   if (result?.kind === 'offline') {
     serverDot.className = 'status-dot status-dot--offline';
     showFeedback(
-      t(
-        'Запустите Lierkour для импорта или используйте Copy / Save JSON.',
-        'Start Lierkour to import, or use Copy / Save JSON.'
-      ),
+      result?.error ||
+        t(
+          `Запустите ${targetApp} для импорта или используйте Copy / Save JSON.`,
+          `Start ${targetApp} to import, or use Copy / Save JSON.`
+        ),
       'warn'
     );
     return;
@@ -478,8 +581,8 @@ async function extractMediaFromTab(tab) {
     return {
       ok: false,
       error: t(
-        'Откройте карточку фильма или игры на Кинопоиске, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG или Itch.io.',
-        'Open a movie, series, or game page on Kinopoisk, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG, or Itch.io.'
+        'Откройте карточку фильма, игры или трека (Кинопоиск, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG, Itch.io, MusicBrainz, Discogs, Last.fm, Bandcamp или Яндекс.Музыка).',
+        'Open a movie, series, game, or track page on Kinopoisk, IMDb, TMDb, Letterboxd, Steam, Epic Games, GOG, Itch.io, MusicBrainz, Discogs, Last.fm, Bandcamp, or Yandex Music.'
       ),
     };
   }

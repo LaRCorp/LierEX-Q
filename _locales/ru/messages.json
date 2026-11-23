@@ -1,11 +1,11 @@
 {
   "extName": {
-    "message": "LierEX"
+    "message": "LierEX-Q"
   },
   "extDescription": {
-    "message": "Извлечение метаданных фильмов, сериалов и игр (Кинопоиск, IMDb, TMDb, Steam, GOG, Epic) в JSON или Lierkour."
+    "message": "Извлечение фильмов, игр и музыки (IMDb, Steam, MusicBrainz, Discogs, Bandcamp) в JSON, LierTags или Lierkour."
   },
   "actionTitle": {
-    "message": "LierEX — Экспорт или добавление в Lierkour"
+    "message": "LierEX-Q — Экспорт или добавление в LierTags / Lierkour"
   }
 }

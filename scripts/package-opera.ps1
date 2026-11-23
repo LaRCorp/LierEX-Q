@@ -75,3 +75,4 @@ try {
 }
 
 Write-Host "Created Opera Add-ons package: $zipPath" -ForegroundColor Green
+

@@ -25,3 +25,4 @@ _Last updated: 2026-11-12_
 - LierEX repository: https://github.com/LaRCorp/LierEX
 - Companion desktop app (Lierkour): https://github.com/LaRCorp/Lierkour
 - Issue tracker / support: https://github.com/LaRCorp/LierEX/issues
+
