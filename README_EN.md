@@ -1,6 +1,6 @@
 <div align="center">
   <img src="icons/icon128.png" width="96" height="96" alt="LierEX-Q Logo" />
-  <h1>🌐 LierEX-Q v1.4 — Media Extractor & LIER Ecosystem Hub</h1>
+  <h1>🌐 LierEX-Q v1.4 — Media & Music Extractor</h1>
   <p><strong>Browser extension (Manifest V3) for extracting movies, TV series, games, and music to JSON, Lierkour, LierTags, or LierSync</strong></p>
 
   <p>
@@ -47,7 +47,7 @@
 
 Released under **GNU General Public License v3.0 (GPLv3)** — see [LICENSE](LICENSE).
 
-Copyright (c) 2026 LaRevole (LaRCorp).
+Copyright (c) 2026 LaRevole.
 
 ### Related Ecosystem Projects
 - ⚡🔄 **[LaRCorp/LierSync](https://github.com/LaRCorp/LierSync)** — fast P2P file transfers, folder sync, and shared clipboard for PC & Android.
