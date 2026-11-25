@@ -58,6 +58,11 @@ const statusSelect = document.getElementById('status-select');
 const importBtn = document.getElementById('import-btn');
 const copyJsonBtn = document.getElementById('copy-json-btn');
 const downloadJsonBtn = document.getElementById('download-json-btn');
+const sendSyncBtn = document.getElementById('send-sync-btn');
+const flushQueueBtn = document.getElementById('flush-queue-btn');
+const dotLk = document.getElementById('dot-lk');
+const dotLt = document.getElementById('dot-lt');
+const dotLs = document.getElementById('dot-ls');
 const feedbackBanner = document.getElementById('feedback-banner');
 
 let extractedPayload = null;
@@ -124,6 +129,9 @@ function applyStaticLocale() {
   }
   if (downloadJsonBtn) {
     downloadJsonBtn.textContent = t('Скачать .json', 'Save .json');
+  }
+  if (sendSyncBtn) {
+    sendSyncBtn.textContent = t('Отправить ссылку в LierSync', 'Send URL to LierSync');
   }
 }
 
@@ -499,6 +507,7 @@ importBtn.addEventListener('click', async () => {
 
   if (result?.kind === 'offline') {
     serverDot.className = 'status-dot status-dot--offline';
+    await refreshQueueBadge();
     showFeedback(
       result?.error ||
         t(
@@ -611,12 +620,78 @@ async function extractMediaFromTab(tab) {
   }
 }
 
+async function refreshQueueBadge() {
+  if (!flushQueueBtn) return;
+  const info = await chrome.runtime.sendMessage({ type: 'GET_QUEUE' }).catch(() => null);
+  const count = Number(info?.count || 0);
+  if (count > 0) {
+    flushQueueBtn.classList.remove('hidden');
+    flushQueueBtn.textContent = t(`Очередь (${count})`, `Queue (${count})`);
+  } else {
+    flushQueueBtn.classList.add('hidden');
+  }
+}
+
+async function refreshEcosystemDots() {
+  const token = await getSavedToken();
+  const eco = await chrome.runtime.sendMessage({ type: 'CHECK_ECOSYSTEM', token }).catch(() => null);
+  if (!eco) return;
+  if (dotLk) dotLk.className = eco.lierkour?.online ? 'eco-pill eco-pill--online' : 'eco-pill';
+  if (dotLt) dotLt.className = eco.liertags?.online ? 'eco-pill eco-pill--online' : 'eco-pill';
+  if (dotLs) dotLs.className = eco.liersync?.online ? 'eco-pill eco-pill--online' : 'eco-pill';
+}
+
+if (sendSyncBtn) {
+  sendSyncBtn.addEventListener('click', async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.url) {
+      showFeedback(t('Нет URL текущей вкладки', 'No active tab URL'), 'error');
+      return;
+    }
+    sendSyncBtn.disabled = true;
+    const res = await chrome.runtime.sendMessage({
+      type: 'SEND_TO_LIERSYNC',
+      payload: { url: tab.url },
+    });
+    sendSyncBtn.disabled = false;
+    if (res?.ok) {
+      showFeedback(t('Ссылка отправлена в LierSync!', 'URL sent to LierSync!'), 'success');
+    } else if (res?.queued) {
+      showFeedback(res.error, 'warn');
+      await refreshQueueBadge();
+    } else {
+      showFeedback(res?.error || t('Ошибка LierSync', 'LierSync error'), 'error');
+    }
+  });
+}
+
+if (flushQueueBtn) {
+  flushQueueBtn.addEventListener('click', async () => {
+    const token = await getSavedToken();
+    const res = await chrome.runtime.sendMessage({ type: 'FLUSH_QUEUE', token });
+    await refreshQueueBadge();
+    if (res?.sent > 0) {
+      showFeedback(
+        t(`Отправлено из очереди: ${res.sent}`, `Flushed ${res.sent} queued item(s)`),
+        'success'
+      );
+    } else {
+      showFeedback(
+        t('Приложения по-прежнему недоступны', 'Target apps are still offline'),
+        'warn'
+      );
+    }
+  });
+}
+
 async function init() {
   applyStaticLocale();
   const savedToken = await getSavedToken();
   tokenInput.value = savedToken;
 
   refreshServerStatus().catch(() => {});
+  refreshEcosystemDots().catch(() => {});
+  refreshQueueBadge().catch(() => {});
 
   try {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });

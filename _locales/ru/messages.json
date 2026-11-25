@@ -3,9 +3,9 @@
     "message": "LierEX-Q"
   },
   "extDescription": {
-    "message": "Извлечение фильмов, игр и музыки (IMDb, Steam, MusicBrainz, Discogs, Bandcamp) в JSON, LierTags или Lierkour."
+    "message": "Извлечение фильмов, игр и музыки и отправка ссылок или картинок в LierTags, Lierkour и LierSync."
   },
   "actionTitle": {
-    "message": "LierEX-Q — Экспорт или добавление в LierTags / Lierkour"
+    "message": "LierEX-Q — Экспорт в LierTags / Lierkour / LierSync"
   }
 }

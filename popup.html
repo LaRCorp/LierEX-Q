@@ -13,15 +13,20 @@
           <img src="icons/icon48.png" alt="LierEX" class="brand-logo" />
           <div class="brand-text">
             <span class="brand-name">LierEX-Q</span>
-            <span class="brand-version">v1.3</span>
+            <span class="brand-version">v1.4</span>
           </div>
         </div>
 
         <div class="header-actions">
+          <div class="eco-dots" title="Lierkour · LierTags · LierSync">
+            <span id="dot-lk" class="eco-pill" title="Lierkour (:8765)">LK</span>
+            <span id="dot-lt" class="eco-pill" title="LierTags (:8766)">LT</span>
+            <span id="dot-ls" class="eco-pill" title="LierSync (:8768)">LS</span>
+          </div>
           <span
             id="server-dot"
             class="status-dot status-dot--checking"
-            title="Проверка связи с Lierkour..."
+            title="Проверка связи..."
           ></span>
           <button
             id="toggle-settings-btn"
@@ -102,6 +107,15 @@
               Скачать .json
             </button>
           </div>
+        </div>
+
+        <div class="ecosystem-bar">
+          <button id="send-sync-btn" type="button" class="sync-quick-btn">
+            Отправить ссылку в LierSync
+          </button>
+          <button id="flush-queue-btn" type="button" class="queue-btn hidden">
+            Очередь (0)
+          </button>
         </div>
       </main>
 

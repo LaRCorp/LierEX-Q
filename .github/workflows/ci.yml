@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate-and-package:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: JS syntax check
+        run: |
+          node --check background.js
+          node --check content.js
+          node --check popup.js
+
+      - name: Package & validate extension archive
+        run: powershell -ExecutionPolicy Bypass -File scripts/package-opera.ps1
+
+      - name: Upload extension package
+        uses: actions/upload-artifact@v4
+        with:
+          name: lierex-q-package
+          path: dist/*.zip
+          if-no-files-found: error

@@ -1,21 +1,25 @@
 <div align="center">
   <img src="icons/icon128.png" width="96" height="96" alt="LierEX-Q Logo" />
-  <h1>🌐 LierEX-Q v1.3 — Экстрактор Медиа и Музыки</h1>
-  <p><strong>Браузерное расширение для извлечения карточек фильмов, сериалов, видеоигр и музыки в JSON, LierTags или Lierkour</strong></p>
+  <h1>🌐 LierEX-Q v1.4 — Экстрактор Медиа и Хаб Экосистемы LIER</h1>
+  <p><strong>Браузерное расширение для извлечения карточек фильмов, сериалов, видеоигр и музыки в JSON, LierTags, Lierkour или LierSync</strong></p>
 
   <p>
-    <a href="https://github.com/LaRCorp/LierEX-Q/releases"><img src="https://img.shields.io/badge/version-1.3.0-6366f1?style=flat-square" alt="Version 1.3.0" /></a>
+    <a href="README.md"><img src="https://img.shields.io/badge/Язык-Русский-8B0000?style=flat-square" alt="Русский" /></a>
+    <a href="README_EN.md"><img src="https://img.shields.io/badge/Language-English-39C5BB?style=flat-square" alt="English" /></a>
+    <a href="https://github.com/LaRCorp/LierEX-Q/releases"><img src="https://img.shields.io/badge/version-1.4.0-6366f1?style=flat-square" alt="Version 1.4.0" /></a>
     <img src="https://img.shields.io/badge/Manifest-V3-0ea5e9?style=flat-square" alt="Manifest V3" />
     <img src="https://img.shields.io/badge/Vanilla_JS-Zero_Build-f59e0b?style=flat-square" alt="Vanilla JS" />
     <a href="LICENSE"><img src="https://img.shields.io/badge/License-GPLv3-10b981?style=flat-square" alt="GPLv3 License" /></a>
-    <a href="https://github.com/LaRCorp/LierTags"><img src="https://img.shields.io/badge/Companion-LierTags_v0.1%2B-ec4899?style=flat-square" alt="LierTags v0.1+" /></a>
-    <a href="https://github.com/LaRCorp/Lierkour"><img src="https://img.shields.io/badge/Companion-Lierkour_v2.2%2B-8b5cf6?style=flat-square" alt="Lierkour v2.2+" /></a>
+    <a href="https://github.com/LaRCorp/LierTags"><img src="https://img.shields.io/badge/Companion-LierTags_v1.1%2B-ec4899?style=flat-square" alt="LierTags v1.1+" /></a>
+    <a href="https://github.com/LaRCorp/Lierkour"><img src="https://img.shields.io/badge/Companion-Lierkour_v2.3%2B-8b5cf6?style=flat-square" alt="Lierkour v2.3+" /></a>
+    <a href="https://github.com/LaRCorp/LierSync"><img src="https://img.shields.io/badge/Companion-LierSync_v1.2%2B-39C5BB?style=flat-square" alt="LierSync v1.2+" /></a>
   </p>
 </div>
 
-**LierEX-Q** — лёгкое браузерное расширение (Manifest V3) без сборщиков и внешних зависимостей. По клику на иконку оно извлекает структурированные метаданные и обложки со страниц популярных кинобаз, игровых магазинов и музыкальных порталов:
-- **Фильмы и игры** (`movie`, `game`) → экспорт в JSON или прямая отправка в десктопное приложение **Lierkour** (порт `8765`).
-- **Музыкальные треки и релизы** (`track`) → экспорт в JSON или прямая отправка в локальный редактор аудиотегов **LierTags** (порт `8766`).
+**LierEX-Q** — лёгкое браузерное расширение (Manifest V3) без сборщиков и внешних зависимостей:
+- **Фильмы и игры** (`movie`, `game`) → экспорт в JSON или прямая отправка в **Lierkour** (порт `8765`).
+- **Музыкальные треки и релизы** (`track`) → экспорт в JSON или прямая отправка в **LierTags** (порт `8766`).
+- **Ссылки, текст и картинки с любого сайта** → отправка на ПК/Android через **LierSync** (порт `8768`) через popup или контекстное меню браузера, плюс оффлайн-очередь при закрытых приложениях.
 
 ---
 
@@ -117,5 +121,7 @@ Copyright (c) 2026 LaRevole.
 ---
 
 ### Связанные проекты экосистемы
+- ⚡🔄 **[LaRCorp/LierSync](https://github.com/LaRCorp/LierSync)** — быстрая P2P-передача файлов, синхронизация папок и буфера обмена между ПК и Android.
+- 🎵🏷️ **[LaRCorp/LierTags](https://github.com/LaRCorp/LierTags)** — локальный редактор аудиотегов и обложек на Rust и Tauri 2.
 - 🎮🎬 **[LaRCorp/Lierkour](https://github.com/LaRCorp/Lierkour)** — локальный кроссплатформенный каталогизатор фильмов, сериалов, аниме и видеоигр.
 - 🎵🏷️ **[LaRCorp/LierTags](https://github.com/LaRCorp/LierTags)** — локальный высокопроизводительный редактор аудиотегов и обложек на Rust.
